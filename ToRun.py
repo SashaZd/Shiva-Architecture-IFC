@@ -1,5 +1,6 @@
 from HelperFunctions import Helping
 import re
+import math
 
 ##################################################
 ################## ALGORITHM METHODS #############
@@ -40,7 +41,7 @@ count = -1
 
 # For each slab width find Wstruct_max
 for slabWidth in ifcSlabWidth:
-	print "----------- new slab"
+	print "------------------ new slab"
 	count += 1 		#which slab is being called
 
 	# Find Wstruct_max list of all possibilities based on the 16+2 measure
@@ -48,6 +49,7 @@ for slabWidth in ifcSlabWidth:
 	
 	# Choose the topmost one for the rest of the calculation. Todo: Allow for more alternatives later
 	Wstruct_max = Wstruct_max_more[-1:]
+	print "Wstruct_max: ", Wstruct_max
 
 	#Find slab line number
 	currentSlabIndex = ifcSlabIndexes[count]
@@ -64,16 +66,57 @@ for slabWidth in ifcSlabWidth:
 					if tempStr2 not in Wbay:
 						Wbay.append(tempStr2)
 
-	print Wbay
+	# print Wbay
 
-
-	maxW = min(Wplant_max, Wstruct_max)
+	maxW = min(Wplant_max, Wstruct_max[0])
 	print "Max(W) = ", maxW
 
-	typW = min(Wpref, Wstruct_max)
+	typW = min(Wpref, Wstruct_max[0])
 	print "Typ(W) = ", typW
 
-	RL = []
+	# RL = []
+	for bay in Wbay:
+		print "----- new bay : ", bay
+		print "span: ", slabWidth, " || bay: ", bay
+		
+		# Remaining Length of bay when divided by Typ(W) calculated
+		RL = bay%typW
+
+		if RL==0:
+			Wdt = typW
+			DTquant = bay/typW
+			DTquant_typ = bay/typW
+
+			# print "Found RL==0"     # ," ::: Wdt=",Wdt," || DTquant=",DTquant," || DTquant_typ=",DTquant_typ
+
+		else:
+			if RL >= Wmin:
+				Wdt = typW
+				Wdt_last = RL
+				DTquant_typ = math.floor(bay/typW)
+				DTquant_last = 1
+				DTquant = math.floor(bay/typW) + 1
+				# print "Found RL >= Wmin"
+
+
+			elif RL < Wmin and RL > (maxW - typW):
+				Wdt = typW
+				Wdt_last = (bay - typW * (math.floor(bay/typW)-1)) / 2
+				DTquant = math.floor(bay/typW)+1
+				DTquant_typ = math.floor(bay/typW)-1
+				DTquant_last = 2
+
+			counter = 1
+			while Wdt_last < Wmin:
+				print "inside loop: ", counter
+				Wdt_last = (bay - typW * (math.floor(bay/typW)-1-counter)) / (2+counter)
+				DTquant = str(math.floor(bay/typW)+1)+"?"
+				DTquant_typ = math.floor(bay/typW)- 1 - counter
+				DTquant_last = (2+counter)
+
+
+			print "Wdt: ", Wdt, " || Wdt_last: ", Wdt_last
+
 	
 
 

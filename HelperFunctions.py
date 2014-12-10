@@ -156,7 +156,7 @@ class Helping:
 										maxOthers.append(int(tempArr[count]));
 								tempMaxLoad = int(each)
 
-				maxOthers.append(tempMaxLoad)
+				maxOthers.insert(0,tempMaxLoad)
 				return maxOthers
 
 				
