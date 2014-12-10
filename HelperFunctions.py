@@ -151,13 +151,13 @@ class Helping:
 							count += 1
 							if int(each) > int(tempMaxLoad):
 								# continue from here.... !! 
-								if "16+2" in str(sheet.cell((checkrow+1), col+1).value):
-									if tempArr[count] not in maxOthers:
-										maxOthers.append(int(tempArr[count]));
-								tempMaxLoad = int(each)
+								if "16+2" not in str(sheet.cell((checkrow+1), col).value):
+									# if tempArr[count] not in maxOthers:
+										# maxOthers.append(int(tempArr[count]));
+									tempMaxLoad = int(each)
 
-				maxOthers.insert(0,tempMaxLoad)
-				return maxOthers
+				# maxOthers.insert(tempMaxLoad)
+				return [tempMaxLoad]
 
 				
 

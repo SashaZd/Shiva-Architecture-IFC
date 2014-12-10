@@ -1,3 +1,4 @@
+from collections import Counter
 from HelperFunctions import Helping
 import re
 import math
@@ -38,10 +39,14 @@ ifcList = callHelp.parseFile()
 [loadForProj, Wpref, Wplant_max, Wmin] = setGlobalsForTheAlgorithm(callHelp)
 
 count = -1
+totSlabMade = []
+anotherSlabCounter = []
+
 
 # For each slab width find Wstruct_max
 for slabWidth in ifcSlabWidth:
-	print "------------------ new slab"
+	slabMade = []
+	print "------------------------ new slab"
 	count += 1 		#which slab is being called
 
 	# Find Wstruct_max list of all possibilities based on the 16+2 measure
@@ -49,7 +54,7 @@ for slabWidth in ifcSlabWidth:
 	
 	# Choose the topmost one for the rest of the calculation. Todo: Allow for more alternatives later
 	Wstruct_max = Wstruct_max_more[-1:]
-	print "Wstruct_max: ", Wstruct_max
+	# print "Wstruct_max: ", Wstruct_max
 
 	#Find slab line number
 	currentSlabIndex = ifcSlabIndexes[count]
@@ -76,8 +81,9 @@ for slabWidth in ifcSlabWidth:
 
 	# RL = []
 	for bay in Wbay:
-		print "----- new bay : ", bay
-		print "span: ", slabWidth, " || bay: ", bay
+
+		# print "------- bay :: ", bay, " || typW :: ", typW
+		
 		
 		# Remaining Length of bay when divided by Typ(W) calculated
 		RL = bay%typW
@@ -86,6 +92,7 @@ for slabWidth in ifcSlabWidth:
 			Wdt = typW
 			DTquant = bay/typW
 			DTquant_typ = bay/typW
+			DTquant_last = 0 
 
 			# print "Found RL==0"     # ," ::: Wdt=",Wdt," || DTquant=",DTquant," || DTquant_typ=",DTquant_typ
 
@@ -94,28 +101,65 @@ for slabWidth in ifcSlabWidth:
 				Wdt = typW
 				Wdt_last = RL
 				DTquant_typ = math.floor(bay/typW)
-				DTquant_last = 1
 				DTquant = math.floor(bay/typW) + 1
+				DTquant_last = 1
 				# print "Found RL >= Wmin"
 
+			elif RL < Wmin and RL <= (maxW - typW):
+				RLnew = bay - (typW * (math.floor(bay/typW)-1))
+				Wdt = typW
+				Wdt_last = RLnew
+				DTquant = math.floor(bay/typW)
+				DTquant_typ = math.floor(bay/typW)-1
+				DTquant_last = 1
 
 			elif RL < Wmin and RL > (maxW - typW):
 				Wdt = typW
-				Wdt_last = (bay - typW * (math.floor(bay/typW)-1)) / 2
+				Wdt_last = (bay - (typW * (math.floor(bay/typW)-1))) / 2
+
+				# if Wdt_last >= Wmin:
 				DTquant = math.floor(bay/typW)+1
 				DTquant_typ = math.floor(bay/typW)-1
 				DTquant_last = 2
 
-			counter = 1
-			while Wdt_last < Wmin:
-				print "inside loop: ", counter
-				Wdt_last = (bay - typW * (math.floor(bay/typW)-1-counter)) / (2+counter)
-				DTquant = str(math.floor(bay/typW)+1)+"?"
-				DTquant_typ = math.floor(bay/typW)- 1 - counter
-				DTquant_last = (2+counter)
+				counting = 1
+				# print "outside while"
+				while Wdt_last < Wmin:
+					# print "inside loop: ", counting
+					Wdt_last = (bay - typW * (math.floor(bay/typW)-1-counting)) / (2+counting)
+					DTquant = math.floor(bay/typW)+1
+					DTquant_typ = math.floor(bay/typW)- 1 - counting
+					DTquant_last = (2+counting)
+					counting = counting+1
 
+		print "---------- bay : ", bay
+		# print "values ::: ", DTquant, DTquant_typ, DTquant_last
 
-			print "Wdt: ", Wdt, " || Wdt_last: ", Wdt_last
+		for z in range(0, (int(DTquant_typ))):
+			slabMade.append(Wdt)
+
+		for z in range(0, (int(DTquant_last))):
+			slabMade.append(Wdt_last)
+
+		print Counter(slabMade)
+
+		for everySlab in slabMade:
+			totSlabMade.append(everySlab)
+		slabMade=[]
+
+	print "End of Slab"
+	print Counter(totSlabMade)
+
+	for everTotSlab in totSlabMade:
+		anotherSlabCounter.append(everTotSlab)
+
+	totSlabMade = []
+
+print "Final Count"
+print Counter(anotherSlabCounter)
+
+print "Total number :::: ", len(anotherSlabCounter)
+		
 
 	
 
