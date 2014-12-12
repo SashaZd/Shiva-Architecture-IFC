@@ -7,16 +7,6 @@ import math
 ################## ALGORITHM METHODS #############
 ##################################################
 
-def setGlobalsForTheAlgorithm(callHelp):
-	loadForProj = int(callHelp.getExcelCellAtRowCol("Sheet3", 3, 1))
-	
-	Wpref = int(re.findall('\d+', (callHelp.getExcelCellAtRowCol("Sheet3", 0, 1)))[0])
-	
-	Wplant_max = int(re.findall('\d+', (callHelp.getExcelCellAtRowCol("Sheet3", 1, 1)))[0])
-	
-	Wmin = int(re.findall('\d+', (callHelp.getExcelCellAtRowCol("Sheet3", 2, 1)))[0])
-
-	return [loadForProj, Wpref, Wplant_max, Wmin]
 
 def findWstruct_max():
 	
@@ -36,7 +26,11 @@ ifcList = callHelp.parseFile()
 		# Get Slab Width/Length & Slab Indexes to be used ahead
 [ifcSlabWidth, ifcSlabIndexes] = callHelp.findIFCSlabWidth(ifcList)
 
-[loadForProj, Wpref, Wplant_max, Wmin] = setGlobalsForTheAlgorithm(callHelp)
+[loadForProj, Wpref, Wplant_max, Wmin] = callHelp.setGlobalsForTheAlgorithm(callHelp)
+
+# NEED FOR FILE WRITE
+largestIndexOfIFC = callHelp.findLargestIndexOfIFCFile()
+writeSlabIndex = largestIndexOfIFC
 
 count = -1
 totSlabMade = []
@@ -50,11 +44,10 @@ for slabWidth in ifcSlabWidth:
 	count += 1 		#which slab is being called
 
 	# Find Wstruct_max list of all possibilities based on the 16+2 measure
-	Wstruct_max_more = callHelp.findMaxLoad("Sheet1", loadForProj, float(slabWidth))
+	[Wstruct_max_more, tendonValue] = callHelp.findMaxLoad("Sheet1", loadForProj, float(slabWidth))
 	
 	# Choose the topmost one for the rest of the calculation. Todo: Allow for more alternatives later
 	Wstruct_max = Wstruct_max_more[-1:]
-	# print "Wstruct_max: ", Wstruct_max
 
 	#Find slab line number
 	currentSlabIndex = ifcSlabIndexes[count]
@@ -133,33 +126,39 @@ for slabWidth in ifcSlabWidth:
 					counting = counting+1
 
 		print "---------- bay : ", bay
+		
 		# print "values ::: ", DTquant, DTquant_typ, DTquant_last
 
 		for z in range(0, (int(DTquant_typ))):
 			slabMade.append(Wdt)
+			# NEED FOR FILE WRITE
+			writeSlabIndex = writeSlabIndex + 1
+
+			# print ifcSlabIndexes[count]
+			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt, ifcSlabIndexes[count], slabWidth, tendonValue)
+
 
 		for z in range(0, (int(DTquant_last))):
 			slabMade.append(Wdt_last)
 
-		print Counter(slabMade)
+		# print Counter(slabMade)
 
 		for everySlab in slabMade:
 			totSlabMade.append(everySlab)
 		slabMade=[]
 
-	print "End of Slab"
-	print Counter(totSlabMade)
+	# print Counter(totSlabMade)
 
 	for everTotSlab in totSlabMade:
 		anotherSlabCounter.append(everTotSlab)
 
 	totSlabMade = []
 
-print "Final Count"
-print Counter(anotherSlabCounter)
-
-print "Total number :::: ", len(anotherSlabCounter)
+# print "Final Count"
+# print Counter(anotherSlabCounter)
+# print "Total number :::: ", len(anotherSlabCounter)
 		
+
 
 	
 

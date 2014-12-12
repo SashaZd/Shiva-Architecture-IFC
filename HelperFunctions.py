@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+import uuid
 import xlrd
 from xlrd.sheet import ctype_text 
 import re
@@ -6,19 +9,19 @@ import re
 
 IFC_FILE_PATH = "slab_segmentation_V4_3floors_SEEBIM.ifc"
 EXCEL_FILE_PATH = "loadTables.xlsx"
+
 # EXCEL_SHEET_1 = "slab_segmentation_V4_3floors_SE"
 
-################################################
-################ HELPER CLASS ##############
-################################################
+############################################################ 
+################ HELPER CLASS ##############################
+############################################################
 
 
 class Helping:
 
-
-################################################
-################ EXCEL CLASS METHODS ##############
-################################################
+############################################################
+################ EXCEL CLASS METHODS #######################
+############################################################
 
 
 	def getExcelCellAtRowCol(self, sheetName, rows, cols):
@@ -31,39 +34,33 @@ class Helping:
 				else:
 					return ""
 
+############ Sets User Defined global variables from Sheet 3 of the Excel File ############ 
 
-	
+	def setGlobalsForTheAlgorithm(self, callHelp):
+		loadForProj = int(callHelp.getExcelCellAtRowCol("Sheet3", 3, 1))
+		
+		Wpref = int(re.findall('\d+', (callHelp.getExcelCellAtRowCol("Sheet3", 0, 1)))[0])
+		
+		Wplant_max = int(re.findall('\d+', (callHelp.getExcelCellAtRowCol("Sheet3", 1, 1)))[0])
+		
+		Wmin = int(re.findall('\d+', (callHelp.getExcelCellAtRowCol("Sheet3", 2, 1)))[0])
 
-
-
-	# def openExcelFile(self):
-	# 	book = xlrd.open_workbook(EXCEL_FILE_PATH)
-	# 	for name in book.sheet_names():
-	# 		print name
-	# 		if name == EXCEL_SHEET_1:
-	# 			sheet = book.sheet_by_name(name)
-
-	# 			# Attempt to find a matching row (search the first column for 'john')
-	# 			rowIndex = -1
-				
-	# 			row=0
-
-	# 			for row in range(0, sheet.nrows):
-	# 				for col in range(0, sheet.ncols):
-	# 					if sheet.cell(row, col).value=="24 x 24 - PC":
-	# 						print "Hello :: ",sheet.cell(row, col+1).valuec
-	# 						break
-
-	# 			book.unload_sheet(name) 
+		return [loadForProj, Wpref, Wplant_max, Wmin]
 
 
-################################################
-################ OTHER HELPER METHODS ##############
-################################################
 
+################################################################
+################ OTHER HELPER METHODS ########################## 
+################################################################
+
+
+
+############ Open either the Excel or IFC File ###################
 
 	def openFile(self, filePath):
 		return open(filePath, 'r')
+
+############ Find a Substring ###################
 
 	def findStringBetweeenStrings(self, originalString, startStr, endStr):
 		try:
@@ -73,9 +70,10 @@ class Helping:
 		except ValueError:
 			return ""
 
+############ Find the Largest Index of the IFC File : Used to write at the end ###################
+
 	def findLargestIndexOfIFCFile(self):
 		ifcFile = self.openFile(IFC_FILE_PATH)
-		# count = 0
 		for line in ifcFile:
 			if ("#" in line) and (line[0]=="#"): 
 				lastIndex = int(self.findStringBetweeenStrings(line, "#", "="))
@@ -83,6 +81,7 @@ class Helping:
 		ifcFile.close()
 		return lastIndex
 
+############ Parse File and Return the ifcList List ###################
 	def parseFile(self):
 		
 		lastIndex = self.findLargestIndexOfIFCFile() + 10
@@ -116,6 +115,9 @@ class Helping:
 		return [ifcSlabWidth, ifcSlabIndexes]
 
 
+############ Find the Maximum Load that's allowed 			###################
+############ Takes into consideration the 16+2 limitations 	###################
+
 
 	def findMaxLoad(self, sheetName, loadForProject, slabWidth):
 		# print "Iteration for Load: ", loadForProject, " || Slab: ", slabWidth
@@ -138,6 +140,7 @@ class Helping:
 							break
 
 				tempMaxLoad = 0
+				tendonValue = 0
 				maxOthers = []
 
 				#check to see if you've moved into another span
@@ -155,25 +158,55 @@ class Helping:
 									# if tempArr[count] not in maxOthers:
 										# maxOthers.append(int(tempArr[count]));
 									tempMaxLoad = int(each)
+									tendonValue = str(sheet.cell((checkrow+1), col).value)
+									print tendonValue
 
 				# maxOthers.insert(tempMaxLoad)
-				return [tempMaxLoad]
-
-				
-
-
-					
+				return [[tempMaxLoad], tendonValue]
 
 
 
+######################################################################
+############ WRITING THE OUTPUT TO THE EXCEL / IFC FILE ##############
+######################################################################
+
+
+########### Generate Unique ID for each added slab #################
+
+	def generateUUID(self):
+		return str(uuid.uuid4().get_hex().upper()[0:22])
+	
+
+
+########### Find Level from Excel for Output #################
+
+	def findLevelFromExcelForOutput(self, ifcList, slabOriginalIndex):
+		indexInclHash = ""
+		for ifcRel in ifcList:
+			if "IFCRELCONTAINEDINSPATIALSTRUCTURE" in str(ifcRel) and str(slabOriginalIndex) in str(ifcRel):
+					indexInclHash = re.split(',|\);', ifcRel)[-2]
+					break
+
+
+		for ifcBuildStor in ifcList:
+			if "IFCBUILDINGSTOREY" in str(ifcBuildStor) and indexInclHash in str(ifcBuildStor):
+				return ifcBuildStor.split(",")[2].split("'")[1].split(" ")[2]
+
+
+		# return indexInclHashc
 
 
 
+########### Write To IFC File #################
 
+	def writeToIFCFile(self, ifcList, writeSlabIndex, Wdt, slabOriginalIndex, slabWidth, tendonValue):
 
+		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
 
+		# print tendonValue
 
-
+		# print "#"+str(writeSlabIndex)+"=IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30 inch thick and "+str(Wdt)+" wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+"’  and number of tendons "+str(int(tendonValue))+",$,$, 'double_tee_slab_piece');"
+	
 
 
 
