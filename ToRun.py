@@ -20,6 +20,8 @@ def findWstruct_max():
 		# New helping class
 callHelp = Helping()
 
+callHelp.writeResultFileStart()
+
 		# Takes all the IFC Lines and puts it into an array so that they can be called using the index line number
 ifcList = callHelp.parseFile()
 
@@ -39,6 +41,7 @@ anotherSlabCounter = []
 
 # For each slab width find Wstruct_max
 for slabWidth in ifcSlabWidth:
+	
 	slabMade = []
 	print "------------------------ new slab"
 	count += 1 		#which slab is being called
@@ -136,10 +139,12 @@ for slabWidth in ifcSlabWidth:
 
 			# print ifcSlabIndexes[count]
 			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt, ifcSlabIndexes[count], slabWidth, tendonValue)
+			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count])
 
 
 		for z in range(0, (int(DTquant_last))):
 			slabMade.append(Wdt_last)
+			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt_last, ifcSlabIndexes[count], slabWidth, tendonValue)
 
 		# print Counter(slabMade)
 
@@ -154,10 +159,12 @@ for slabWidth in ifcSlabWidth:
 
 	totSlabMade = []
 
+
 # print "Final Count"
 # print Counter(anotherSlabCounter)
 # print "Total number :::: ", len(anotherSlabCounter)
 		
+callHelp.writeResultFileEnd()
 
 
 	

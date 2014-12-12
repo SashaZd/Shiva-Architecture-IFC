@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-
-import uuid
+import os
+import random 
+import string
 import xlrd
+from xlutils.copy import copy
+from xlwt import easyxf
 from xlrd.sheet import ctype_text 
 import re
 
 #Global Variables ----> TODO : Take as user input later ?? 
 
 IFC_FILE_PATH = "slab_segmentation_V4_3floors_SEEBIM.ifc"
-EXCEL_FILE_PATH = "loadTables.xlsx"
+EXCEL_FILE_PATH = "loadTables.xls"
 
 # EXCEL_SHEET_1 = "slab_segmentation_V4_3floors_SE"
 
@@ -159,7 +162,16 @@ class Helping:
 										# maxOthers.append(int(tempArr[count]));
 									tempMaxLoad = int(each)
 									tendonValue = str(sheet.cell((checkrow+1), col).value)
-									print tendonValue
+									tendonValue = re.split("or| ", tendonValue)[0]
+									if not "+" in tendonValue:
+										tendonValue = str(int(float(tendonValue)))
+									else : 
+										temp = tendonValue.split("+")[0]+" & number of rebars "+tendonValue.split("+")[1]
+										if len(tendonValue.split("+"))==3:
+											temp = temp + tendonValue.split("+")[2].split("k")[0] + "000 psi concrete"
+										tendonValue = temp
+
+									# print temp
 
 				# maxOthers.insert(tempMaxLoad)
 				return [[tempMaxLoad], tendonValue]
@@ -174,7 +186,8 @@ class Helping:
 ########### Generate Unique ID for each added slab #################
 
 	def generateUUID(self):
-		return str(uuid.uuid4().get_hex().upper()[0:22])
+		return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits + "$") for i in range(22))
+		# return str(uuid.uuid4().get_hex()[0:22])
 	
 
 
@@ -200,14 +213,101 @@ class Helping:
 ########### Write To IFC File #################
 
 	def writeToIFCFile(self, ifcList, writeSlabIndex, Wdt, slabOriginalIndex, slabWidth, tendonValue):
+		slabWidth = round(float(slabWidth), 2)
+		Wdt = round(float(Wdt),2)
+		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
+		addToFile = "#"+str(writeSlabIndex)+"= IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30\" thick & "+str(Wdt)+"' wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+"’ & number of strands "+str(tendonValue)+",$,$, 'double_tee_slab_piece');\n"
+		
+		resultFile = open('Results.ifc', 'a')
+		resultFile.write(addToFile)
+		resultFile.close()
 
+
+	def writeResultFileStart(self):
+		originalFile =  self.openFile(IFC_FILE_PATH)
+		countEndsec = 0;
+		resultFile = open('Results.ifc', 'w+')
+
+		for line in originalFile:
+			if "ENDSEC" in line:
+				countEndsec += 1
+				if countEndsec == 2: 
+					break
+				else:
+					resultFile.write(line)
+			else:
+				resultFile.write(line)
+
+		resultFile.close()
+
+	def writeResultFileEnd(self):
+		originalFile =  self.openFile(IFC_FILE_PATH)
+		countEndsec = 0
+		resultFile = open('Results.ifc', 'a')
+
+		for line in originalFile:
+			if "ENDSEC" in line:
+				countEndsec += 1
+				if countEndsec >= 2: 
+					print line
+					resultFile.write(line)
+
+		resultFile.close()
+		originalFile.close()
+
+
+############# WRITE TO EXCEL FILE ################
+
+	def get_sheet_by_name(self, book, name):
+	    """Get a sheet by name from xlwt.Workbook, a strangely missing method.
+	    Returns None if no sheet with the given name is present.
+	    """
+	    # Note, we have to use exceptions for flow control because the
+	    # xlwt API is broken and gives us no other choice.
+	    try:
+	        for idx in itertools.count():
+	            sheet = book.get_sheet(idx)
+	            if sheet.name == name:
+	                return sheet
+	    except IndexError:
+	        return None
+
+	def writeExcelFile(self, ifcList, slabOriginalIndex):
+		print ""
 		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
 
-		# print tendonValue
+		readOnlyFile = xlrd.open_workbook(EXCEL_FILE_PATH, formatting_info=True)
+		readOnlySheet = readOnlyFile.sheet_by_name("Sheet4")
+		writableCopyFile = copy(readOnlyFile)
 
-		# print "#"+str(writeSlabIndex)+"=IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30 inch thick and "+str(Wdt)+" wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+"’  and number of tendons "+str(int(tendonValue))+",$,$, 'double_tee_slab_piece');"
-	
+		for i in range(0,4):
+			if "Sheet4" in writableCopyFile.get_sheet(i).get_name():
+				writableSheet = writableCopyFile.get_sheet(i)
+				x=0
+				while readOnlySheet.cell(x,0).value != "" :
+					x += 1
+				
+				writableSheet.write()
 
+				# break
+
+
+				# writableSheet.write(0,0, "Hellow World");
+
+		# writableCopyFile.save("Results-Excel" + '.out' + os.path.splitext(EXCEL_FILE_PATH)[-1])
+
+		# writableSheet = writableCopyFile.get_sheet(4)
+		# print writableSheet.get_name()
+
+		# writableSheet.write(0, 0, 'Combo I 3-4 year old')
+
+		# book = xlrd.open_workbook(EXCEL_FILE_PATH)
+		# for name in book.sheet_names():
+		# 	if name == "Sheet4":
+		# 		sheet = book.sheet_by_name(name)
+		# 		# wb = copy(sheet)
+		# 		sheet.write(0,0,"Hello")
+						
 
 
 
