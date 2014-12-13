@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-import os
-import random 
-import string
-import xlrd
+from collections import Counter
+import os, random, string, re
+import xlrd, xlwt
+# import xlsxwriter
 from xlutils.copy import copy
-from xlwt import easyxf
-from xlrd.sheet import ctype_text 
-import re
 
 #Global Variables ----> TODO : Take as user input later ?? 
 
 IFC_FILE_PATH = "slab_segmentation_V4_3floors_SEEBIM.ifc"
 EXCEL_FILE_PATH = "loadTables.xls"
 
-# EXCEL_SHEET_1 = "slab_segmentation_V4_3floors_SE"
+TEMP_EXCEL_ARRAY = list()
+OTHER_EXCEL_ARRAY = list()
+
 
 ############################################################ 
 ################ HELPER CLASS ##############################
@@ -166,16 +165,19 @@ class Helping:
 									if not "+" in tendonValue:
 										tendonValue = str(int(float(tendonValue)))
 									else : 
-										temp = tendonValue.split("+")[0]+" & number of rebars "+tendonValue.split("+")[1]
-										if len(tendonValue.split("+"))==3:
-											temp = temp + tendonValue.split("+")[2].split("k")[0] + "000 psi concrete"
-										tendonValue = temp
+										self.refactorTendonValue(tendonValue)
 
 									# print temp
 
 				# maxOthers.insert(tempMaxLoad)
 				return [[tempMaxLoad], tendonValue]
 
+	def refactorTendonValue(self, tendonValue):
+		temp = tendonValue.split("+")[0]+" & number of rebars "+tendonValue.split("+")[1]
+		if len(tendonValue.split("+"))==3:
+			temp = temp + tendonValue.split("+")[2].split("k")[0] + "000 psi concrete"
+		tendonValue = temp
+		return tendonValue
 
 
 ######################################################################
@@ -259,9 +261,9 @@ class Helping:
 ############# WRITE TO EXCEL FILE ################
 
 	def get_sheet_by_name(self, book, name):
-	    """Get a sheet by name from xlwt.Workbook, a strangely missing method.
-	    Returns None if no sheet with the given name is present.
-	    """
+	    # """Get a sheet by name from xlwt.Workbook, a strangely missing method.
+	    # Returns None if no sheet with the given name is present.
+	    # """
 	    # Note, we have to use exceptions for flow control because the
 	    # xlwt API is broken and gives us no other choice.
 	    try:
@@ -272,29 +274,39 @@ class Helping:
 	    except IndexError:
 	        return None
 
-	def writeExcelFile(self, ifcList, slabOriginalIndex):
-		print ""
+	def getMemberElevation(self, ifcList, levelOfThisSlab):
+		
+		for each in ifcList:
+			if "IFCBUILDINGSTOREY" in str(each) and levelOfThisSlab in str(each):
+				return round(float(re.split(",|\);", each)[9]),2)
+
+
+	def writeExcelFile(self, ifcList, slabOriginalIndex, slabWidth, Wdt, tendonValue):
 		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
 
-		readOnlyFile = xlrd.open_workbook(EXCEL_FILE_PATH, formatting_info=True)
-		readOnlySheet = readOnlyFile.sheet_by_name("Sheet4")
-		writableCopyFile = copy(readOnlyFile)
+		
+		memberElevation = self.getMemberElevation(ifcList, levelOfThisSlab)
+		
 
-		for i in range(0,4):
-			if "Sheet4" in writableCopyFile.get_sheet(i).get_name():
-				writableSheet = writableCopyFile.get_sheet(i)
-				x=0
-				while readOnlySheet.cell(x,0).value != "" :
-					x += 1
-				
-				writableSheet.write()
+		TEMP_EXCEL_ARRAY.append(levelOfThisSlab+" FL," + str(memberElevation) + "," + str(slabWidth) + "," + str(Wdt) + "," + "1")
+		OTHER_EXCEL_ARRAY.append(str(slabWidth) + "," + str(Wdt))
 
-				# break
+		currentIndex = len(TEMP_EXCEL_ARRAY)
+		# print currentIndex
 
+		tempTendonValue = tendonValue.split("+")
+		if len(tempTendonValue) >= 1:
+			TEMP_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[0]
+			OTHER_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[0]
+		if len(tempTendonValue) >= 2:
+			TEMP_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[1]
+			OTHER_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[1]
+		if len(tempTendonValue) >= 3:
+			TEMP_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[2]
+			OTHER_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[2]
+		
+		# print len(TEMP_EXCEL_ARRAY)
 
-				# writableSheet.write(0,0, "Hellow World");
-
-		# writableCopyFile.save("Results-Excel" + '.out' + os.path.splitext(EXCEL_FILE_PATH)[-1])
 
 		# writableSheet = writableCopyFile.get_sheet(4)
 		# print writableSheet.get_name()
@@ -308,6 +320,102 @@ class Helping:
 		# 		# wb = copy(sheet)
 		# 		sheet.write(0,0,"Hello")
 						
+
+	def writeFinalExcel(self):
+		c = Counter(TEMP_EXCEL_ARRAY)
+		d = Counter(OTHER_EXCEL_ARRAY)
+
+		readOnlyFile = xlrd.open_workbook(EXCEL_FILE_PATH)
+		readOnlySheet = readOnlyFile.sheet_by_name("Sheet4")
+		readOnlySheet = readOnlyFile.sheet_by_name("Sheet5")
+		writableCopyFile = copy(readOnlyFile)
+
+
+
+		for i in range(0,4):
+			if "Sheet4" in writableCopyFile.get_sheet(i).get_name():
+				writableSheet = writableCopyFile.get_sheet(i)
+				# writableSheet2 = writableCopyFile.get_sheet(i+1)
+
+				# For Sheet 4
+
+				x=0
+				while readOnlySheet.cell(x,0).value != "" :
+					x += 1
+				
+				for letter in c:
+					# print 'NEW %s : %d' % (letter, c[letter])
+
+					tempArr = letter.split(",")
+					
+					# Level Write
+					writableSheet.write(x, 0, tempArr[0])
+
+					# Top Member Elevation
+					writableSheet.write(x, 1, tempArr[1])
+
+					# Member Length (Slab Width)
+					writableSheet.write(x, 2, tempArr[2])
+
+					# Member Width (Wdt Or Wdt_last)
+					writableSheet.write(x, 3, round(float(tempArr[3]),2))
+
+					# Number of pieces
+					writableSheet.write(x, 4, c[letter])
+
+					#Number of Strands
+					writableSheet.write(x, 8, tempArr[5])
+
+					#Number of Rebars
+					if len(tempArr)>=7:
+						writableSheet.write(x, 9, tempArr[6])
+
+					#Number of Concrete PSI
+					if len(tempArr)>=8:
+						writableSheet.write(x, 10, tempArr[7])
+
+					x += 1
+
+		for i in range(0,4):
+			if "Sheet5" in writableCopyFile.get_sheet(i).get_name():
+				writableSheet2 = writableCopyFile.get_sheet(i)
+
+				# For Sheet 5
+
+				y=0
+				while readOnlySheet.cell(y,0).value != "" :
+					y += 1
+				
+				for letter in d:
+					# print 'NEW %s : %d' % (letter, c[letter])
+
+					tempArr2 = letter.split(",")
+
+					# Member Length (Slab Width)
+					writableSheet2.write(y, 0, tempArr2[0])
+
+					# Member Width (Wdt Or Wdt_last)
+					writableSheet2.write(y, 1, round(float(tempArr2[1]),2))
+
+					# Number of pieces
+					writableSheet2.write(y, 2, d[letter])
+
+					#Number of Strands
+					temp_strand = round(float(tempArr2[2]) * float(d[letter]),2)
+					writableSheet2.write(y, 3, temp_strand)
+
+					#Number of Rebars
+					if len(tempArr2)>=4:
+						temp_rebars = round(float(tempArr2[3]) * float(d[letter]),2)
+						writableSheet2.write(y, 4, temp_rebars)
+
+					#Number of Concrete PSI
+					if len(tempArr2)>=5:
+						writableSheet2.write(y, 5, tempArr2[4])
+
+					y += 1
+
+		writableCopyFile.save(EXCEL_FILE_PATH)
 
 
 

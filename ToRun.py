@@ -41,7 +41,7 @@ anotherSlabCounter = []
 
 # For each slab width find Wstruct_max
 for slabWidth in ifcSlabWidth:
-	
+
 	slabMade = []
 	print "------------------------ new slab"
 	count += 1 		#which slab is being called
@@ -51,6 +51,7 @@ for slabWidth in ifcSlabWidth:
 	
 	# Choose the topmost one for the rest of the calculation. Todo: Allow for more alternatives later
 	Wstruct_max = Wstruct_max_more[-1:]
+
 
 	#Find slab line number
 	currentSlabIndex = ifcSlabIndexes[count]
@@ -139,12 +140,13 @@ for slabWidth in ifcSlabWidth:
 
 			# print ifcSlabIndexes[count]
 			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt, ifcSlabIndexes[count], slabWidth, tendonValue)
-			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count])
+			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count], slabWidth, Wdt, tendonValue)
 
 
 		for z in range(0, (int(DTquant_last))):
 			slabMade.append(Wdt_last)
 			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt_last, ifcSlabIndexes[count], slabWidth, tendonValue)
+			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count], slabWidth, Wdt_last, tendonValue)
 
 		# print Counter(slabMade)
 
@@ -165,8 +167,7 @@ for slabWidth in ifcSlabWidth:
 # print "Total number :::: ", len(anotherSlabCounter)
 		
 callHelp.writeResultFileEnd()
-
-
+callHelp.writeFinalExcel()
 	
 
 
