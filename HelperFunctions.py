@@ -332,6 +332,8 @@ class Helping:
 					# print line
 					resultFile.write(line)
 
+		resultFile.write("END-ISO-10303-21;")
+
 		resultFile.close()
 		originalFile.close()
 
