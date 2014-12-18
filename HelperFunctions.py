@@ -123,7 +123,7 @@ class Helping:
 
 
 	def findMaxLoad(self, sheetName, loadForProject, slabWidth):
-		print "Iteration for Load: ", loadForProject, " || Slab: ", slabWidth
+		# print "Iteration for Load: ", loadForProject, " || Slab: ", slabWidth
 		checkrow = 0
 		checkcol=0
 		book = xlrd.open_workbook(EXCEL_FILE_PATH)
@@ -173,6 +173,7 @@ class Helping:
 									# print temp
 
 				# maxOthers.insert(tempMaxLoad)
+				# print tendonValue, " --- tendonValue Max"
 				return [[tempMaxLoad], tendonValue]
 
 
@@ -213,41 +214,14 @@ class Helping:
 							count += 1
 							WdtTemp = math.ceil(Wdt)
 							if int(WdtTemp) == int(each):
-								if str(slabWidth) == str(49.93) and str(Wdt) == str(8.5):
-									print "Wdt ::", Wdt, " || Strands :: ", str(sheet.cell((checkrow+1), col).value), " || Coords :: ", (checkrow+1), col
+								# if str(slabWidth) == str(49.93) and str(Wdt) == str(8.5):
+								# print "Wdt ::", Wdt, " || Strands :: ", str(sheet.cell((checkrow+1), col).value), " || Coords :: ", (checkrow+1), col
 								tendonValue = str(sheet.cell((checkrow+1), col).value)
+
+								# print "Per wdt : ", tendonValue
 								tendonValue = re.split("or| ", tendonValue)[0]
+								# print "Per wdt new : ", tendonValue
 								return tendonValue
-
-
-							# if int(each) > int(tempMaxLoad):
-							# 	continue from here.... !! 
-							# 	if "16+2" not in str(sheet.cell((checkrow+1), col).value):
-							# 		# if tempArr[count] not in maxOthers:
-							# 			# maxOthers.append(int(tempArr[count]));
-							# 		tempMaxLoad = int(each)
-							# 		tendonValue = str(sheet.cell((checkrow+1), col).value)
-							# 		tendonValue = re.split("or| ", tendonValue)[0]
-							# 		if not "+" in tendonValue:
-							# 			tendonValue = str(int(float(tendonValue)))
-							# 		else : 
-							# 			self.refactorTendonValue(tendonValue)
-
-									# print temp
-
-				# # maxOthers.insert(tempMaxLoad)
-				# return [[tempMaxLoad], tendonValue]
-
-				# if str(slabWidth) == str(49.93):
-				# 	print "Tendon : ", tendonValue, "Load : ", loadForProject, " || Length : ", slabWidth, " || Wdt : ", Wdt
-
-
-				
-
-
-
-
-
 
 
 	def refactorTendonValue(self, tendonValue):
@@ -442,6 +416,7 @@ class Helping:
 					# print 'NEW %s : %d' % (letter, c[letter])
 
 					tempArr = letter.split(",")
+					print tempArr
 					# if len(tempArr)>=7:
 					# 	print tempArr
 					
@@ -461,6 +436,7 @@ class Helping:
 					writableSheet.write(x, 4, c[letter])
 
 					#Number of Strands in each DT piece
+					# print tempArr[5]
 					writableSheet.write(x, 5, round(float(tempArr[5]),2))
 
 					#Total Number of Strands
