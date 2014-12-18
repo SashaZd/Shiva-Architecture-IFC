@@ -416,7 +416,7 @@ class Helping:
 					# print 'NEW %s : %d' % (letter, c[letter])
 
 					tempArr = letter.split(",")
-					print tempArr
+					# print tempArr
 					# if len(tempArr)>=7:
 					# 	print tempArr
 					
