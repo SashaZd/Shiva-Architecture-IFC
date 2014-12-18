@@ -218,7 +218,7 @@ class Helping:
 		slabWidth = round(float(slabWidth), 2)
 		Wdt = round(float(Wdt),2)
 		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
-		addToFile = "#"+str(writeSlabIndex)+"= IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30\" thick & "+str(Wdt)+"' wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+"’ & number of strands "+str(tendonValue)+",$,$, 'double_tee_slab_piece');\n"
+		addToFile = "#"+str(writeSlabIndex)+"= IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30\" thick & "+str(Wdt)+"ft. wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+"ft. & number of strands "+str(tendonValue)+",$,$, 'double_tee_slab_piece');\n"
 		
 		resultFile = open('Results.ifc', 'a')
 		resultFile.write(addToFile)
@@ -251,7 +251,7 @@ class Helping:
 			if "ENDSEC" in line:
 				countEndsec += 1
 				if countEndsec >= 2: 
-					print line
+					# print line
 					resultFile.write(line)
 
 		resultFile.close()
@@ -326,36 +326,39 @@ class Helping:
 		d = Counter(OTHER_EXCEL_ARRAY)
 
 		readOnlyFile = xlrd.open_workbook(EXCEL_FILE_PATH)
-		readOnlySheet = readOnlyFile.sheet_by_name("Sheet4")
-		readOnlySheet = readOnlyFile.sheet_by_name("Sheet5")
 		writableCopyFile = copy(readOnlyFile)
+		readOnlySheet = readOnlyFile.sheet_by_name("Sheet4")
+		readOnlySheet2 = readOnlyFile.sheet_by_name("Sheet5")
+		
 
 
 
 		for i in range(0,4):
 			if "Sheet4" in writableCopyFile.get_sheet(i).get_name():
 				writableSheet = writableCopyFile.get_sheet(i)
-				# writableSheet2 = writableCopyFile.get_sheet(i+1)
+				writableSheet2 = writableCopyFile.get_sheet(i+1)
 
 				# For Sheet 4
 
 				x=0
-				while readOnlySheet.cell(x,0).value != "" :
+				while readOnlySheet.cell(x,0).value != "":
 					x += 1
 				
 				for letter in c:
 					# print 'NEW %s : %d' % (letter, c[letter])
 
 					tempArr = letter.split(",")
+					# if len(tempArr)>=7:
+					# 	print tempArr
 					
-					# Level Write
+					# Floor Level
 					writableSheet.write(x, 0, tempArr[0])
 
 					# Top Member Elevation
-					writableSheet.write(x, 1, tempArr[1])
+					writableSheet.write(x, 1, round(float(tempArr[1]),2))
 
 					# Member Length (Slab Width)
-					writableSheet.write(x, 2, tempArr[2])
+					writableSheet.write(x, 2, round(float(tempArr[2]),2))
 
 					# Member Width (Wdt Or Wdt_last)
 					writableSheet.write(x, 3, round(float(tempArr[3]),2))
@@ -363,16 +366,24 @@ class Helping:
 					# Number of pieces
 					writableSheet.write(x, 4, c[letter])
 
-					#Number of Strands
-					writableSheet.write(x, 8, tempArr[5])
+					#Number of Strands in each DT piece
+					writableSheet.write(x, 5, round(float(tempArr[5]),2))
 
-					#Number of Rebars
+					#Total Number of Strands
+					writableSheet.write(x, 6, round((float(tempArr[5]) * float(c[letter])),2))
+
+					#Number of Rebars in each DT piece
 					if len(tempArr)>=7:
-						writableSheet.write(x, 9, tempArr[6])
+						writableSheet.write(x, 7, round(float(tempArr[6]),2))
+
+					#Total Number of Rebars
+						temp_rebar = round((float(tempArr[6]) * float(c[letter])),2)
+						print temp_rebar
+						writableSheet.write(x, 8, temp_rebar)
 
 					#Number of Concrete PSI
 					if len(tempArr)>=8:
-						writableSheet.write(x, 10, tempArr[7])
+						writableSheet.write(x, 9, tempArr[7])
 
 					x += 1
 
@@ -383,35 +394,40 @@ class Helping:
 				# For Sheet 5
 
 				y=0
-				while readOnlySheet.cell(y,0).value != "" :
+				while readOnlySheet2.cell(y,0).value != "" :
 					y += 1
 				
-				for letter in d:
-					# print 'NEW %s : %d' % (letter, c[letter])
-
-					tempArr2 = letter.split(",")
+				for each in d:
+					# print 'NEW %s : %d' % (each, c[each])
+					tempArr2 = each.split(",")
+					# print tempArr2
 
 					# Member Length (Slab Width)
-					writableSheet2.write(y, 0, tempArr2[0])
+					writableSheet2.write(y, 0, round(float(tempArr2[0]),2))
 
 					# Member Width (Wdt Or Wdt_last)
 					writableSheet2.write(y, 1, round(float(tempArr2[1]),2))
 
 					# Number of pieces
-					writableSheet2.write(y, 2, d[letter])
+					writableSheet2.write(y, 2, d[each])
 
 					#Number of Strands
-					temp_strand = round(float(tempArr2[2]) * float(d[letter]),2)
+					temp_strand = round(float(tempArr2[2]) * float(d[each]),2)
 					writableSheet2.write(y, 3, temp_strand)
 
 					#Number of Rebars
 					if len(tempArr2)>=4:
-						temp_rebars = round(float(tempArr2[3]) * float(d[letter]),2)
+						temp_rebars = round(float(tempArr2[3]) * float(d[each]),2)
 						writableSheet2.write(y, 4, temp_rebars)
 
 					#Number of Concrete PSI
 					if len(tempArr2)>=5:
 						writableSheet2.write(y, 5, tempArr2[4])
+
+					# Total Number of DT Pieces in the Project
+					
+					if(y==1):
+						writableSheet2.write(y, 6, len(TEMP_EXCEL_ARRAY))
 
 					y += 1
 
