@@ -2,6 +2,7 @@
 from collections import Counter
 import os, random, string, re
 import xlrd, xlwt
+import math
 # import xlsxwriter
 from xlutils.copy import copy
 
@@ -122,7 +123,7 @@ class Helping:
 
 
 	def findMaxLoad(self, sheetName, loadForProject, slabWidth):
-		# print "Iteration for Load: ", loadForProject, " || Slab: ", slabWidth
+		print "Iteration for Load: ", loadForProject, " || Slab: ", slabWidth
 		checkrow = 0
 		checkcol=0
 		book = xlrd.open_workbook(EXCEL_FILE_PATH)
@@ -144,6 +145,8 @@ class Helping:
 				tempMaxLoad = 0
 				tendonValue = 0
 				maxOthers = []
+
+				# print checkrow, " -- ", checkcol
 
 				#check to see if you've moved into another span
 				for col in xrange(checkcol,checkcol+7):
@@ -171,6 +174,81 @@ class Helping:
 
 				# maxOthers.insert(tempMaxLoad)
 				return [[tempMaxLoad], tendonValue]
+
+
+	def findMaxStrands(self, sheetName, loadForProject, slabWidth, Wdt):
+
+		checkrow = 0
+		checkcol=0
+		book = xlrd.open_workbook(EXCEL_FILE_PATH)
+		for name in book.sheet_names():
+			if name == sheetName:
+				sheet = book.sheet_by_name(name)
+				for checkrow in range(1,10):
+					if sheet.cell(checkrow,0).value!="":
+						if loadForProject == int(sheet.cell(checkrow,0).value):
+							# obtained checkrow containing the load value
+							break
+
+				for checkcol in range(1, (sheet.ncols-3)):
+					if sheet.cell(0, checkcol).value != "":
+						if round(slabWidth, -1) == int(sheet.cell(0, checkcol).value):
+							# obtained checkcol containing the slab value
+							break
+
+				tempMaxLoad = 0
+				tendonValue = 0
+				maxOthers = []
+
+				# print checkrow, " -- ", checkcol
+
+				#check to see if you've moved into another span
+				for col in xrange(checkcol,checkcol+7):
+					if col > sheet.ncols:
+						pass
+					else:
+						tempArr = re.findall('\d+',sheet.cell(checkrow, col).value)
+						count = -1
+						for each in tempArr:
+							count += 1
+							WdtTemp = math.ceil(Wdt)
+							if int(WdtTemp) == int(each):
+								if str(slabWidth) == str(49.93) and str(Wdt) == str(8.5):
+									print "Wdt ::", Wdt, " || Strands :: ", str(sheet.cell((checkrow+1), col).value), " || Coords :: ", (checkrow+1), col
+								tendonValue = str(sheet.cell((checkrow+1), col).value)
+								tendonValue = re.split("or| ", tendonValue)[0]
+								return tendonValue
+
+
+							# if int(each) > int(tempMaxLoad):
+							# 	continue from here.... !! 
+							# 	if "16+2" not in str(sheet.cell((checkrow+1), col).value):
+							# 		# if tempArr[count] not in maxOthers:
+							# 			# maxOthers.append(int(tempArr[count]));
+							# 		tempMaxLoad = int(each)
+							# 		tendonValue = str(sheet.cell((checkrow+1), col).value)
+							# 		tendonValue = re.split("or| ", tendonValue)[0]
+							# 		if not "+" in tendonValue:
+							# 			tendonValue = str(int(float(tendonValue)))
+							# 		else : 
+							# 			self.refactorTendonValue(tendonValue)
+
+									# print temp
+
+				# # maxOthers.insert(tempMaxLoad)
+				# return [[tempMaxLoad], tendonValue]
+
+				# if str(slabWidth) == str(49.93):
+				# 	print "Tendon : ", tendonValue, "Load : ", loadForProject, " || Length : ", slabWidth, " || Wdt : ", Wdt
+
+
+				
+
+
+
+
+
+
 
 	def refactorTendonValue(self, tendonValue):
 		temp = tendonValue.split("+")[0]+" & number of rebars "+tendonValue.split("+")[1]
@@ -218,7 +296,7 @@ class Helping:
 		slabWidth = round(float(slabWidth), 2)
 		Wdt = round(float(Wdt),2)
 		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
-		addToFile = "#"+str(writeSlabIndex)+"= IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30\" thick & "+str(Wdt)+"ft. wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+"ft. & number of strands "+str(tendonValue)+",$,$, 'double_tee_slab_piece');\n"
+		addToFile = "#"+str(writeSlabIndex)+"= IFCSLAB('" + self.generateUUID() + "',#41,'Floor:Precast Concrete Slab - 30\" thick & "+str(Wdt)+" ft. wide','"+levelOfThisSlab+" FL','slab length "+str(slabWidth)+" ft. & number of strands "+str(tendonValue)+"',$,$, 'double_tee_slab_piece');\n"
 		
 		resultFile = open('Results.ifc', 'a')
 		resultFile.write(addToFile)
@@ -281,7 +359,7 @@ class Helping:
 				return round(float(re.split(",|\);", each)[9]),2)
 
 
-	def writeExcelFile(self, ifcList, slabOriginalIndex, slabWidth, Wdt, tendonValue):
+	def writeExcelFile(self, ifcList, slabOriginalIndex, slabWidth, Wdt, tendonValue, loadForProj):
 		levelOfThisSlab = self.findLevelFromExcelForOutput(ifcList ,slabOriginalIndex)
 
 		
@@ -294,7 +372,21 @@ class Helping:
 		currentIndex = len(TEMP_EXCEL_ARRAY)
 		# print currentIndex
 
-		tempTendonValue = tendonValue.split("+")
+		
+
+		# Find Wstruct_max list of all possibilities based on the 16+2 measure
+		# [Wstruct_max_more, temp] = self.findMaxLoad("Sheet1", loadForProj, float(Wdt))
+		
+		# # Choose the topmost one for the rest of the calculation. Todo: Allow for more alternatives later
+		# Wstruct_max = Wstruct_max_more[-1:]
+
+		# print "Wdt: ", Wdt, " || Wstruct_max: ", Wstruct_max
+
+		tendonValue = self.findMaxStrands("Sheet1", loadForProj, float(slabWidth), Wdt)
+		# print tendonValue
+		tempTendonValue = str(tendonValue).split("+")
+
+
 		if len(tempTendonValue) >= 1:
 			TEMP_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[0]
 			OTHER_EXCEL_ARRAY[currentIndex-1] += "," + tempTendonValue[0]
@@ -378,7 +470,7 @@ class Helping:
 
 					#Total Number of Rebars
 						temp_rebar = round((float(tempArr[6]) * float(c[letter])),2)
-						print temp_rebar
+						# print temp_rebar
 						writableSheet.write(x, 8, temp_rebar)
 
 					#Number of Concrete PSI

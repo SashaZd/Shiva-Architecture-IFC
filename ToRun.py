@@ -40,7 +40,7 @@ anotherSlabCounter = []
 
 
 # For each slab width find Wstruct_max
-for slabWidth in ifcSlabWidth:
+for slabWidth in ifcSlabWidth:		#Slab Width == Member Length
 
 	slabMade = []
 	print "------------------------ new slab"
@@ -129,7 +129,7 @@ for slabWidth in ifcSlabWidth:
 					DTquant_last = (2+counting)
 					counting = counting+1
 
-		print "---------- bay : ", bay
+		# print "---------- bay : ", bay
 		
 		# print "values ::: ", DTquant, DTquant_typ, DTquant_last
 
@@ -140,13 +140,13 @@ for slabWidth in ifcSlabWidth:
 
 			# print ifcSlabIndexes[count]
 			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt, ifcSlabIndexes[count], slabWidth, tendonValue)
-			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count], slabWidth, Wdt, tendonValue)
+			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count], slabWidth, Wdt, tendonValue, loadForProj)
 
 
 		for z in range(0, (int(DTquant_last))):
 			slabMade.append(Wdt_last)
 			callHelp.writeToIFCFile(ifcList, writeSlabIndex, Wdt_last, ifcSlabIndexes[count], slabWidth, tendonValue)
-			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count], slabWidth, Wdt_last, tendonValue)
+			callHelp.writeExcelFile(ifcList, ifcSlabIndexes[count], slabWidth, Wdt_last, tendonValue, loadForProj)
 
 		# print Counter(slabMade)
 
